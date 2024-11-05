@@ -93,3 +93,70 @@ public class RMQConfiguration {
         log.info("RMQConfiguration->" + msg );
     }
 }  
+
+
+@Service
+@Slf4j
+//@EnableScheduling
+@RequiredArgsConstructor
+public class RmqService {
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Qualifier("schedulerExchange")
+    private final TopicExchange schedulerExchange;
+
+
+    @Qualifier("statusreplierExchange")
+    private final TopicExchange statusreplierExchange;
+
+// Load Service list by inretface ProcService
+    private List<ProcService> procServiceList;
+    @Autowired
+    public void initProcServiceList(Optional<List<ProcService>> beans) {
+        this.procServiceList = beans.orElse(Collections.emptyList());
+    }
+
+    public RmqMsgWrapper send(RmqProcData msgData, RmqProcType msgDataType) {
+        RmqMsgWrapper msgWrapper = new RmqMsgWrapper(msgData, msgDataType);
+        try{
+            log.info("Start send JobKey:" + msgWrapper.getJobKey());
+            String key = "madas-proc";
+            ProcService procService =  getProcService(msgDataType);
+            RmqStatus rmqStatus = procService.initStatus(msgWrapper);
+            String jsonObj = mapper.writeValueAsString(msgWrapper);
+            rabbitTemplate.convertAndSend(schedulerExchange.getName(), key, jsonObj);
+            msgWrapper.setSendStatus(RmqMsgWrapper.RMQ_SEND_STATUS_INIT);
+            log.info("End send JobKey:" + msgWrapper.getJobKey() + " ProcID:" + rmqStatus.getProcID());
+        } catch (Exception e){
+            log.error("Error send JobKey:" + msgWrapper.getJobKey() + " err:" + e.getMessage());
+            msgWrapper.setSendError(RmqMsgWrapper.RMQ_SEND_STATUS_ERROR, e.getMessage() + ":" + e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+        return msgWrapper;
+    }
+
+    @RabbitListener(queues = "#{statushandlerQueue.name}")
+    public void receiveReply(String msgData) {
+        log.info("Start Reply receive msgData.length: " + msgData.length());
+
+        try {
+            RmqMsgWrapper msgWrapper = mapper.readValue(msgData, RmqMsgWrapper.class);
+            msgWrapper.arrangeData();
+            updateStatus(msgWrapper);
+            log.info("End Reply receive JobKey: " + msgWrapper.getJobKey());
+        } catch (Exception e){
+            log.error("Error " + e.getMessage() + " receive msgData " + msgData);
+            e.printStackTrace();
+        }
+        log.info("End Reply receive msgData.length: " + msgData.length());
+    }
+
+    private ProcService getProcService(RmqProcType dataType ){
+
+        Optional<ProcService> ret = procServiceList.stream().filter(s->s.isSuitesFor(dataType)).findFirst();
+
+        return ret.get();
+  }
+}
