@@ -1,0 +1,25 @@
+public enum MyType {
+    once(1),
+    minutely(2),
+    hourly(3),
+    Daily(4),
+    Weekly(5),
+    Monthly(6),
+    Yearly(7);
+
+    public final Integer label;
+
+    private SchedulerCyclicType(Integer label) {
+        this.label = label;
+    }
+
+    private static final Map<Integer, SchedulerCyclicType> map;
+    static {
+        map = Arrays.stream(values())
+            .collect(Collectors.toMap(e -> e.label, e -> e));
+    }
+    public static SchedulerCyclicType fromInt(int value) {
+        return Optional.ofNullable(map.get(value)).orElse(Daily);
+    }
+
+}
