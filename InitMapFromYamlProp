@@ -1,0 +1,16 @@
+// in java
+@Value("#{${madas.report-to-authority.report-status-list}}")
+Map<String, List<Integer>> reportStatusList;
+
+// In Yaml Prop
+report-to-authority:
+  report-status-list-map: "{ \
+                  'ReportToAuthority': {6,10,11,11,12,13,14,14,15}, \
+                  'ReportToAuthorityAllocRepNumber': {6}, \
+                  'ReportToAuthorityRequestForMivzak': {10,11}, \
+                  'ReportToAuthorityReceiveMivzak': {11}, \
+                  'ReportToAuthoritySendZip': {12,13}, \
+                  'ReportToAuthorityAcceptFirstResponse': {14}, \
+                  'ReportToAuthorityAcceptSecondResponse': {14,15} \
+                }"
+report-status-list: ${MADAS_REPORT_TO_AUTHORITY_REPORT_STATUS_LIST:${report-to-authority.report-status-list-map}}
