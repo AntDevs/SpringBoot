@@ -95,6 +95,11 @@ public class RMQConfiguration {
 }  
 
 
+
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
 @Service
 @Slf4j
 //@EnableScheduling
