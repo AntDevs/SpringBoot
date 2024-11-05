@@ -1,0 +1,95 @@
+package com.poalim.madasmqproducer.impl.config;
+
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.MessageConverter;
+
+// in application yaml
+//  scheduler-exchange-name: ${RMQ_SCHEDULER_EXCHANGE_NAME:regulatoryreporting.scheduler.execproc.publish}
+//  execproc-queue-name: ${RMQ_EXECPROC_QUEUE_NAME:regulatoryreporting.performer.execproc.publish}
+//  statusreplier-exchange-name: ${RMQ_STATUSREPLIER_EXCHANGE_NAME:regulatoryreporting.statusreplier.execstatus.publish}
+//  statushandler-queue-name: ${RMQ_STATUSHANDLER_QUEUE_NAME:regulatoryreporting.statushandler.execstatus.publish}
+
+
+@Slf4j
+@Configuration
+//@RequiredArgsConstructor
+public class RMQConfiguration {
+// 10108RaDEVRegulatoryReportingDevMainTUsersTST
+// PRD10176AD02
+// TST10176AD01
+
+  
+      @Value("${RMQ.host}")
+    private String mqHostname;
+      @Value("${RMQ.vhost}")
+    private String mqVHostname;
+
+    @Value("${RMQ.port}")
+    private int mqPort;
+
+    @Value("${RMQ.username}")
+    private String mqUser;
+
+    @Value("${RMQ.password}")
+    private String mqPwd;
+
+      @Value("${RMQ.scheduler-exchange-name}")
+    private String schedulerExchangeName;
+    @Value("${RMQ.execproc-queue-name}")
+    private String execprocQueueName;
+
+    @Value("${RMQ.statusreplier-exchange-name}")
+    private String statusreplierExchangeName;
+    @Value("${RMQ.statushandler-queue-name}")
+    private String statushandlerQueueName;
+
+      @Bean
+    public ConnectionFactory rabbitConnectionFactory() {
+        log("mqHostname:" + mqHostname);
+        log("mqUser:" + mqUser);
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+        connectionFactory.setHost(mqHostname);
+        connectionFactory.setPort(mqPort);
+        connectionFactory.setUsername(mqUser);
+        connectionFactory.setPassword(mqPwd);
+        connectionFactory.setVirtualHost(mqVHostname);
+        return connectionFactory;
+    }    
+
+    @Bean(name = "schedulerExchange")
+    public TopicExchange schedulerExchange() {
+        log("schedulerExchangeName:" + schedulerExchangeName);
+        return new TopicExchange(schedulerExchangeName, true, true);
+    }
+    @Bean(name = "execprocQueue")
+    public Queue execprocQueue() {
+        log("execprocQueueName:" + execprocQueueName);
+        return new Queue(execprocQueueName, false);
+    }
+
+    @Bean(name = "statusreplierExchange")
+    public TopicExchange statusreplierExchange() {
+        log("statusreplierExchangeName:" + statusreplierExchangeName);
+        return new TopicExchange(statusreplierExchangeName, true, true);
+    }
+    @Bean(name = "statushandlerQueue")
+    public Queue statushandlerQueue() {
+        log("statushandlerQueueName:" + statushandlerQueueName);
+        return new Queue(statushandlerQueueName, false);
+    }
+
+      @Bean
+    public Binding statusreplierBinding(TopicExchange statusreplierExchange, Queue statushandlerQueue) {
+        return BindingBuilder.bind(statushandlerQueue()).to(statusreplierExchange()).with(statushandlerQueue().getName());
+    }
+
+  private void log(String msg){
+        log.info("RMQConfiguration->" + msg );
+    }
+}  
